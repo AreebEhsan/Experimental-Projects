@@ -1,8 +1,12 @@
+import { config } from "dotenv";
+// Load .env.local first (takes precedence), then fall back to .env
+config({ path: ".env.local" });
+config({ path: ".env" });
+
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { OLL_ALGS, PLL_ALGS } from "./seed/algorithms";
 import { DEFAULT_USER_ID, DEFAULT_SESSION_ID, DEFAULT_SESSION_NAME } from "../src/lib/constants";
-import "dotenv/config";
 
 const adapter = new PrismaPg({ connectionString: process.env["DATABASE_URL"]! });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
