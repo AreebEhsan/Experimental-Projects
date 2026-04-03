@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String   @default("Default User")
+  createdAt DateTime @default(now())
+
+  sessions          Session[]
+  solves            Solve[]
+  algorithmProgress AlgorithmProgress[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  userId    String
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  solves Solve[]
+
+  @@index([userId])
+}
+
+model Solve {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Raw time in milliseconds
+  rawTime   Int
+  // Effective time after penalties (ms); null if DNF
+  time      Int?
+
+  scramble  String
+  penalty   Penalty?
+  notes     String   @default("")
+
+  sessionId String
+  userId    String
+
+  session Session @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+enum Penalty {
+  PLUS_TWO
+  DNF
+}
+
+model Algorithm {
+  id          String      @id @default(cuid())
+  name        String
+  category    AlgCategory
+  caseNumber  Int
+  notation    String
+  description String
+  videoUrl    String?
+  imageUrl    String?
+  createdAt   DateTime    @default(now())
+
+  progress AlgorithmProgress[]
+
+  @@unique([category, caseNumber])
+  @@index([category])
+}
+
+enum AlgCategory {
+  OLL
+  PLL
+  F2L
+  COLL
+  WV
+}
+
+model AlgorithmProgress {
+  id          String   @id @default(cuid())
+  learned     Boolean  @default(false)
+  favorite    Boolean  @default(false)
+  updatedAt   DateTime @updatedAt
+
+  userId      String
+  algorithmId String
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  algorithm Algorithm @relation(fields: [algorithmId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, algorithmId])
+  @@index([userId])
+}

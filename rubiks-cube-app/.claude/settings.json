@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx prisma:*)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\AREEB\\Desktop\\Experimental Projects\\rubiks-cube-app\\src\\app\\algorithms",
+      "c:\\Users\\AREEB\\Desktop\\Experimental Projects\\rubiks-cube-app\\src\\app\\api\\solves"
+    ]
+  }
+}
