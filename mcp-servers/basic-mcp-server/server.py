@@ -18,9 +18,8 @@ def welcome_note():
     return "This is the first MCP resource"
 
 @mcp.prompt()
-def research_assistant(topics: list[str]) -> str:
-    return "You are a research assistant.\n\n" + "\n".join(
-        f"Researching: {topic}" for topic in topics
-    )
+def research_assistant(topics: list[str]) -> list[str]:
+    return [f"Researching: {topic}" for topic in topics]
+
 if __name__ == "__main__":
     mcp.run()
