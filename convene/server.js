@@ -10,28 +10,55 @@ const {
   getCurrentUser,
   userLeave,
   getRoomUsers,
+  isUsernameTaken,
 } = require("./utils/users");
 
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
 
-// Set static folder
 app.use(express.static(path.join(__dirname, "public")));
 
-const botName = "ChatCord Bot";
+const botName = "Convene Bot";
 
-// Run when client connects
+async function attachRedisAdapter() {
+  if (!process.env.REDIS_URL) return;
+
+  const { createClient } = require("redis");
+  const { createAdapter } = require("@socket.io/redis-adapter");
+
+  const pubClient = createClient({ url: process.env.REDIS_URL });
+  const subClient = pubClient.duplicate();
+
+  pubClient.on("error", (err) => console.error("Redis pub error:", err));
+  subClient.on("error", (err) => console.error("Redis sub error:", err));
+
+  await Promise.all([pubClient.connect(), subClient.connect()]);
+  io.adapter(createAdapter(pubClient, subClient));
+  console.log("Socket.io Redis adapter attached");
+}
+
 io.on("connection", (socket) => {
   socket.on("joinRoom", ({ username, room }) => {
+    username = typeof username === "string" ? username.trim() : "";
+    room = typeof room === "string" ? room.trim() : "";
+
+    if (!username || !room) {
+      socket.emit("joinError", "Username and room are required");
+      return;
+    }
+
+    if (isUsernameTaken(username, room)) {
+      socket.emit("joinError", `Username "${username}" is taken in ${room}`);
+      return;
+    }
+
     const user = userJoin(socket.id, username, room);
 
     socket.join(user.room);
 
-    // Welcome current user
-    socket.emit("message", formatMessage(botName, "Welcome to ChatCord!"));
+    socket.emit("message", formatMessage(botName, "Welcome to Convene!"));
 
-    // Broadcast when a user connects
     socket.broadcast
       .to(user.room)
       .emit(
@@ -39,22 +66,20 @@ io.on("connection", (socket) => {
         formatMessage(botName, `${user.username} has joined the chat`)
       );
 
-    // Send users and room info
     io.to(user.room).emit("roomUsers", {
       room: user.room,
       users: getRoomUsers(user.room),
     });
   });
 
-  // Listen for chatMessage
   socket.on("chatMessage", (msg) => {
     const user = getCurrentUser(socket.id);
-    if (user) {
-      io.to(user.room).emit("message", formatMessage(user.username, msg));
-    }
+    if (!user) return;
+    const text = typeof msg === "string" ? msg.trim() : "";
+    if (!text) return;
+    io.to(user.room).emit("message", formatMessage(user.username, text));
   });
 
-  // Runs when client disconnects
   socket.on("disconnect", () => {
     const user = userLeave(socket.id);
 
@@ -64,7 +89,6 @@ io.on("connection", (socket) => {
         formatMessage(botName, `${user.username} has left the chat`)
       );
 
-      // Send users and room info
       io.to(user.room).emit("roomUsers", {
         room: user.room,
         users: getRoomUsers(user.room),
@@ -75,6 +99,10 @@ io.on("connection", (socket) => {
 
 const PORT = process.env.PORT || 3000;
 
-server.listen(PORT, () =>
-  console.log(`Server running on port ${PORT}`)
-);
+attachRedisAdapter()
+  .catch((err) => {
+    console.error("Failed to attach Redis adapter, continuing without it:", err);
+  })
+  .finally(() => {
+    server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  });

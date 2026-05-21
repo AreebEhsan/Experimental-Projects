@@ -28,9 +28,18 @@ function getRoomUsers(room) {
   return users.filter(user => user.room === room);
 }
 
+// Username uniqueness is enforced per-room (case-insensitive)
+function isUsernameTaken(username, room) {
+  const target = username.toLowerCase();
+  return users.some(
+    user => user.room === room && user.username.toLowerCase() === target
+  );
+}
+
 module.exports = {
   userJoin,
   getCurrentUser,
   userLeave,
-  getRoomUsers
+  getRoomUsers,
+  isUsernameTaken
 };

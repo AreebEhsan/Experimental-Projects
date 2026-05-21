@@ -28,6 +28,12 @@ socket.on('message', (message) => {
   chatMessages.scrollTop = chatMessages.scrollHeight;
 });
 
+// Server rejected the join (missing or duplicate name, etc.)
+socket.on('joinError', (reason) => {
+  alert(reason);
+  window.location = '/';
+});
+
 // Message submit
 chatForm.addEventListener('submit', (e) => {
   e.preventDefault();
@@ -80,11 +86,8 @@ function outputUsers(users) {
   });
 }
 
-//Prompt the user before leave chat room
 document.getElementById('leave-btn').addEventListener('click', () => {
-  const leaveRoom = confirm('Are you sure you want to leave the chatroom?');
-  if (leaveRoom) {
-    window.location = '../index.html';
-  } else {
+  if (confirm('Are you sure you want to leave the chatroom?')) {
+    window.location = '/';
   }
 });
